@@ -35,23 +35,62 @@ function create() {
 
 	// Creating static platforms
 	const platforms = this.physics.add.staticGroup();
-	platforms.create(225, 490, 'platform').setScale(1, .3).refreshBody();
+	platforms.create(225, 490, 'platform').setScale(3, .3).refreshBody();
 
 	// Displays the initial number of bugs, this value is initially hardcoded as 24 
-	gameState.scoreText = this.add.text(175, 482, 'Bugs Left: 24', { fontSize: '15px', fill: '#000000' });
+	gameState.scoreText = this.add.text(350, 482, 'Bugs Left: 24', { fontSize: '15px', fill: '#000000' });
 
 	// Uses the physics plugin to create Codey
-	gameState.player = this.physics.add.sprite(225, 450, 'codey').setScale(.5);
+	gameState.player = this.physics.add.sprite(425, 450, 'codey').setScale(.5);
 
 	// Create Collider objects
 	gameState.player.setCollideWorldBounds(true);
 	this.physics.add.collider(gameState.player, platforms);
 	
 	// Creates cursor objects to be used in update()
-	gameState.cursors = this.input.keyboard.createCursorKeys();
+	gameState.cursors = this.input.keyboard.createCursorKeys(); 
 
-	// Add new code below:
+	 gameState.enemies = this.physics.add.group();
+	 const pellets = this.physics.add.group();
+
+	for ( yVal = 1; yVal < 4; yVal++) {
+		for ( xVal = 1; xVal < 9; xVal++ ) {
+		gameState.enemies.create( 50 * xVal, 50 * yVal, 'bug1').setScale(.6).setGravity(-200);
+		}
+	}
 	
+	function genPellet() {
+		const randomBug = Phaser.Utils.Array.GetRandom(gameState.enemies.getChildren());
+		pellets.create(randomBug.x, randomBug.y, 'bugPellet');
+	}
+	
+	gameState.pelletsLoop = this.time.addEvent({
+		delay: 300,
+		callback: genPellet,
+		callbackScope: this,
+		loop: true,
+	});
+
+	this.physics.add.collider(pellets, platforms, (pellet) => {
+		pellet.destroy();
+	})
+
+	this.physics.add.collider(pellets, gameState.player, () => {
+		gameState.active = false;
+		gameState.pelletsLoop.destroy();
+		this.physics.pause()
+		gameState.scoreText = this.add.text(350, 200, 'game over', { fontSize: '15px', fill: '#000000' });
+
+	} )
+
+	gameState.bugRepellent = this.physics.add.group();
+
+
+	this.physics.add.collider(gameState.bugRepellent, gameState.enemies, (bug, enemies) => {
+       bug.destroy();
+	   enemies.destroy();
+	   gameState.scoreText = (350, 200, `Bugs Left: ${numOfTotalEnemies()}` , { fontSize: '15px', fill: '#000000' });
+	})
 }
 
 function update() {
@@ -67,9 +106,8 @@ function update() {
 
 		// Execute code if the spacebar key is pressed
 		if (Phaser.Input.Keyboard.JustDown(gameState.cursors.space)) {
-			
+		  gameState.bugRepellent.create(gameState.player.x, gameState.player.y, 'bugRepellent').setGravity(-2000);
 		}
-
 		// Add logic for winning condition and enemy movements below:
     
   }
@@ -91,6 +129,13 @@ const config = {
 		preload,
 		create,
 		update
+	},
+
+	scale: {
+		parent: 'body',
+		autoCenter: Phaser.Scale.CENTER_BOTH,
+		width: 800,
+		height: 600
 	}
 };
 
